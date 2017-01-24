@@ -34,16 +34,8 @@ public class PatientReminder {
     }
 
     private void emailPatientIfTheyHaveAnEmailAddress(Patient patient) {
-        String emailAddress = patient.getEmailAddress();
-
-        // Email addresses are null when the patient doesn't have one
-        if(emailAddress != null) {
-            emailService.emailReminderTo(emailAddress);
+        if (patient.hasEmailAddress()) {
+            emailService.emailReminderTo(patient.getEmailAddress());
         }
     }
-
-    private boolean isMobileNumber(String phoneNumber) {
-        return phoneNumber.startsWith("07");
-    }
-
 }
