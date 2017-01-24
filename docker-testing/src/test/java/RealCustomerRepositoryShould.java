@@ -26,19 +26,31 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import can.touch.CustomerRepository;
-import can.touch.Customer;
-import com.palantir.docker.compose.DockerComposeRule;
-import com.palantir.docker.compose.logging.LogDirectory;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+
+import static com.palantir.docker.compose.configuration.ShutdownStrategy.AGGRESSIVE;
+
+import java.util.List;
+
+import org.junit.After;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import static com.palantir.docker.compose.configuration.ShutdownStrategy.AGGRESSIVE;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
+import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.logging.LogDirectory;
+
+import can.touch.ContactDetail;
+import can.touch.Customer;
+import can.touch.CustomerRepository;
+import can.touch.CustomerRepositoryMigration;
 
 public class RealCustomerRepositoryShould {
     private static final Customer AARON = new Customer(2, "Aaron");
+    private static final String AARON_NUMBER = "12345";
+
     @ClassRule
     public static DockerComposeRule docker = DockerComposeRule.builder()
             .file("docker-compose.yml")
@@ -46,12 +58,25 @@ public class RealCustomerRepositoryShould {
             .shutdownStrategy(AGGRESSIVE)
             .build();
 
+    @BeforeClass
+    public static void createTables() {
+        CustomerRepository repo = CustomerRepository.createPostgres();
+        repo.createCustomerTable();
+        repo.createPhoneNumberTable();
+        repo.close();
+    }
+
+    @After
+    public void clearTables() {
+        CustomerRepository repo = CustomerRepository.createPostgres();
+        repo.clearTables();
+        repo.close();
+    }
+
 
     @Test public void
     load_customers_after_storing_them() {
-        CustomerRepository repo = CustomerRepository.createDefault();
-        repo.createCustomerTable();
-        repo.createPhoneNumberTable();
+        CustomerRepository repo = CustomerRepository.createPostgres();
 
         repo.insertCustomer(AARON.getId(), AARON.getName());
 
@@ -60,5 +85,40 @@ public class RealCustomerRepositoryShould {
         assertThat(customer, equalTo(AARON));
 
         repo.close();
+    }
+
+
+    @Test public void
+    load_contact_details_for_customer_after_storing_them() {
+        CustomerRepository repo = CustomerRepository.createPostgres();
+
+        repo.insertCustomer(AARON.getId(), AARON.getName());
+        repo.insertContactDetail(AARON.getId(), AARON_NUMBER);
+
+        List<ContactDetail> contactDetails = repo.getAllContactDetails();
+
+        assertThat(contactDetails, contains(new ContactDetail(AARON.getName(), AARON_NUMBER)));
+
+        repo.close();
+    }
+
+
+    @Test public void
+    load_customer_and_contact_details_after_migration() {
+        CustomerRepository postgresRepo = CustomerRepository.createPostgres();
+
+        postgresRepo.insertCustomer(AARON.getId(), AARON.getName());
+        postgresRepo.insertContactDetail(AARON.getId(), AARON_NUMBER);
+
+        CustomerRepository mysqlRepo = CustomerRepository.createMysql();
+        CustomerRepositoryMigration.migrate(postgresRepo, mysqlRepo);
+
+        List<ContactDetail> contactDetails = mysqlRepo.getAllContactDetails();
+        assertThat(contactDetails, contains(new ContactDetail(AARON.getName(), AARON_NUMBER)));
+        Customer customer = mysqlRepo.getCustomer(AARON.getId());
+        assertThat(customer, equalTo(AARON));
+
+        postgresRepo.close();
+        mysqlRepo.close();
     }
 }

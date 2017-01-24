@@ -28,12 +28,22 @@
 package can.touch;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class TargettedCustomerReport {
+    private final CustomerRepository repository;
     public TargettedCustomerReport(CustomerRepository repository) {
+        this.repository = repository;
     }
 
+    private boolean isPalindrome(String s) {
+        String lower = s.toLowerCase();
+        String reverse = new StringBuilder(lower).reverse().toString();
+        return lower.equals(reverse);
+    }
     public List<String> getAllImportantNumbers() {
-        return null;
+        return repository.getAllContactDetails().stream()
+                .filter(contactDetail -> isPalindrome(contactDetail.getCustomerName()))
+                .map(ContactDetail::getPhoneNumber).collect(Collectors.toList());
     }
 }

@@ -26,19 +26,22 @@ package can.touch;/*
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import cannot.touch.DataSourceFactory;
-import cannot.touch.Retrying;
+import java.util.List;
+
+import javax.sql.DataSource;
+
 import org.skife.jdbi.v2.DBI;
 import org.skife.jdbi.v2.sqlobject.Bind;
 import org.skife.jdbi.v2.sqlobject.SqlQuery;
 import org.skife.jdbi.v2.sqlobject.SqlUpdate;
 import org.skife.jdbi.v2.sqlobject.customizers.Mapper;
 
-import java.util.List;
+import cannot.touch.DataSourceFactory;
+import cannot.touch.Retrying;
 
 public interface CustomerRepository {
-    static CustomerRepository createDefault() {
-        DBI dbi = new DBI(DataSourceFactory.create());
+    static CustomerRepository createDefault(DataSource datasource) {
+        DBI dbi = new DBI(datasource);
         try {
             return Retrying.withRetry( () -> dbi.open(CustomerRepository.class));
         } catch (InterruptedException e) {
@@ -46,7 +49,15 @@ public interface CustomerRepository {
         }
     }
 
-    @SqlUpdate("create table customers (id int primary key, name varchar(100), phonenumber varchar(15))")
+    static CustomerRepository createPostgres() {
+        return createDefault(DataSourceFactory.createPostgres());
+    }
+
+    static CustomerRepository createMysql() {
+        return createDefault(DataSourceFactory.createMysql());
+    }
+
+    @SqlUpdate("create table customers (id int primary key, name varchar(100))")
     void createCustomerTable();
 
     @SqlUpdate("create table phonenumbers (phonenumber varchar(15), customer_id int)")
@@ -55,9 +66,16 @@ public interface CustomerRepository {
     @SqlUpdate("insert into customers (id, name) values (:id, :name)")
     void insertCustomer(@Bind("id") int id, @Bind("name") String name);
 
+    @SqlUpdate("insert into phonenumbers (phonenumber, customer_id) values (:number, :customer_id)")
+    void insertContactDetail(@Bind("customer_id") int customerId, @Bind("number") String phoneNumber);
+
     @SqlQuery("select * from customers where id = :id")
     @Mapper(CustomerMapper.class)
     Customer getCustomer(@Bind("id") int id);
+
+    @SqlQuery("select * from customers")
+    @Mapper(CustomerMapper.class)
+    List<Customer> getAllCustomers();
 
     /*
     ---- ADD IMPLEMENTATION HERE ----
@@ -68,10 +86,20 @@ public interface CustomerRepository {
     | `getCustomer` above.          |
     ---------------------------------
     */
+    @SqlQuery("select phonenumber, name from phonenumbers, customers where id = customer_id")
+    @Mapper(ContactListMapper.class)
     List<ContactDetail> getAllContactDetails();
+
+    @SqlQuery("select * from phonenumbers")
+    @Mapper(InternalContactMapper.class)
+    List<InternalContact> getAllContactsInternal();
 
     /**
      * close with no args is used to close the connection
      */
     void close();
+
+    @SqlUpdate("delete from customers;"
+            + " delete from phonenumbers;")
+    void clearTables();
 }

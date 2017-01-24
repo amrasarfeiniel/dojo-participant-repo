@@ -29,12 +29,56 @@ package can.touch;
 
 public class ContactDetail {
     private final String phoneNumber;
+    private final String customerName;
 
-    public ContactDetail(String phoneNumber) {
+    public ContactDetail(String customerName, String phoneNumber) {
         this.phoneNumber = phoneNumber;
+        this.customerName = customerName;
     }
 
     public String getPhoneNumber() {
         return phoneNumber;
+    }
+
+    public String getCustomerName() {
+        return customerName;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((customerName == null) ? 0 : customerName.hashCode());
+        result = prime * result + ((phoneNumber == null) ? 0 : phoneNumber.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        ContactDetail other = (ContactDetail) obj;
+        if (customerName == null) {
+            if (other.customerName != null) {
+                return false;
+            }
+        } else if (!customerName.equals(other.customerName)) {
+            return false;
+        }
+        if (phoneNumber == null) {
+            if (other.phoneNumber != null) {
+                return false;
+            }
+        } else if (!phoneNumber.equals(other.phoneNumber)) {
+            return false;
+        }
+        return true;
     }
 }

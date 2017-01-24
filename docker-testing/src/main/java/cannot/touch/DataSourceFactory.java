@@ -1,15 +1,17 @@
 package cannot.touch;
 
+import javax.sql.DataSource;
+
 import org.postgresql.ds.PGPoolingDataSource;
 import org.postgresql.jdbc3.Jdbc3PoolingDataSource;
 
-import javax.sql.DataSource;
+import com.mysql.jdbc.jdbc2.optional.MysqlDataSource;
 
 public class DataSourceFactory {
 
     private static final String NAME = "A Data Source";
 
-    public static DataSource create() {
+    public static DataSource createPostgres() {
         PGPoolingDataSource existingDataSource = PGPoolingDataSource.getDataSource(NAME);
 
         if(existingDataSource == null) {
@@ -17,6 +19,18 @@ public class DataSourceFactory {
         }
 
         return existingDataSource;
+    }
+
+    public static DataSource createMysql() {
+        MysqlDataSource source = new MysqlDataSource();
+
+        source.setServerName("localhost");
+        source.setDatabaseName("mysql");
+        source.setPortNumber(3306);
+        source.setUser("palantir");
+        source.setPassword("so_secret");
+
+        return source;
     }
 
     private static DataSource createNewDatasource() {

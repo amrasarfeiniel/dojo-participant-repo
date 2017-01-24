@@ -5,3 +5,13 @@ services:
     image: kiasaki/alpine-postgres
     ports:
       - 5432:5432
+      
+  mysql:
+    image: mysql
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=so_secret
+      - MYSQL_USER=palantir
+      - MYSQL_PASSWORD=so_secret
+      - MYSQL_DATABASE=mysql

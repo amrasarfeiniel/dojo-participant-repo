@@ -26,19 +26,23 @@
  * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-import can.touch.ContactDetail;
-import can.touch.CustomerRepository;
-import can.touch.TargettedCustomerReport;
-import com.google.common.collect.ImmutableList;
-import org.junit.Test;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
+
+import can.touch.ContactDetail;
+import can.touch.CustomerRepository;
+import can.touch.TargettedCustomerReport;
+
 public class TargettedCustomerReportShould {
-    private static final ContactDetail ANNAS_NUMBER = new ContactDetail("12356");
+    private static final ContactDetail ANNAS_NUMBER = new ContactDetail("Anna", "12356");
+    private static final ContactDetail DAVES_NUMBER = new ContactDetail("Dave", "12357");
 
     CustomerRepository repository = mock(CustomerRepository.class);
     TargettedCustomerReport report = new TargettedCustomerReport(repository);
@@ -48,5 +52,12 @@ public class TargettedCustomerReportShould {
         when(repository.getAllContactDetails()).thenReturn(ImmutableList.of(ANNAS_NUMBER));
 
         assertThat(report.getAllImportantNumbers(), contains(ANNAS_NUMBER.getPhoneNumber()));
+    }
+
+    @Test public void
+    not_find_daves_number() {
+        when(repository.getAllContactDetails()).thenReturn(ImmutableList.of(DAVES_NUMBER));
+
+        assertThat(report.getAllImportantNumbers(), empty());
     }
 }
